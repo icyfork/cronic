@@ -1,48 +1,86 @@
 #!/bin/bash
 
+# Homepage: http://habilis.net/cronic/
+
 # Cronic v2 - cron job report wrapper
 # Copyright 2007 Chuck Houpt. No rights reserved, whatsoever.
 # Public Domain CC0: http://creativecommons.org/publicdomain/zero/1.0/
 
-set -eu
+# Updates by Ky-Anh: Add some options to control the output
+#
+#   cron [option] commands
+#
+# [option] would be :silent, :full or :error
+#
+#   :silent   all kinds of messages are ignored
+#   :error    print error message if any
+#   :full     print any kind of message if any
 
-OUT=/tmp/cronic.out.$$
-ERR=/tmp/cronic.err.$$
-TRACE=/tmp/cronic.trace.$$
+set +eu
 
-set +e
+[[ $# -ge 1 ]] || exit 0
+
+_FLAG="$(date +%s)"
+_TYPE=":full"
+
+OUT=/tmp/cronic.out.$$.$_FLAG
+ERR=/tmp/cronic.err.$$.$_FLAG
+TRACE=/tmp/cronic.trace.$$.$_FLAG
+
+case "$1" in
+  ":error"|":silent"|":full") _TYPE="$1"; shift;;
+esac
+
+[[ $# -ge 1 ]] || exit 0
+
+if [[ "$_TYPE" == ":silent" ]]; then
+  exec "$@" >/dev/null 2>&1
+  # so you won't see this
+fi
+
 "$@" >$OUT 2>$TRACE
 RESULT=$?
-set -e
 
 PATTERN="^${PS4:0:1}\\+${PS4:1}"
-if grep -aq "$PATTERN" $TRACE
-then
-    ! grep -av "$PATTERN" $TRACE > $ERR
+if grep -aq "$PATTERN" $TRACE; then
+  ! grep -av "$PATTERN" $TRACE > $ERR
 else
-    ERR=$TRACE
+  ERR=$TRACE
 fi
 
-if [ $RESULT -ne 0 -o -s "$ERR" ]
-    then
-    echo "Cronic detected failure or error output for the command:"
-    echo "$@"
-    echo
-    echo "RESULT CODE: $RESULT"
-    echo
-    echo "ERROR OUTPUT:"
+if [[ "$_TYPE" != ":full" ]]; then
+  # Ignore all PHP notice and warning
+  echo "$@" | grep -q 'php '
+  if [[ $? -eq 0 && "$RESULT" -eq 0 ]]; then
+    sed -i -e '/^PHP Warning: /d' -e '/^PHP Notice: /d' $ERR
+  fi
+fi
+
+grep -q "[a-z0-9]" $ERR || echo -n > $ERR
+if [[ $RESULT -ge 1 || -s "$ERR" ]]; then
+  echo "Command:     $@"
+  echo "Return code: $RESULT"
+  echo -n "Error message:"
+  if grep -qE "[a-z0-9]" "$ERR" 2>/dev/null; then
+    echo ""
     cat "$ERR"
-    echo
-    echo "STANDARD OUTPUT:"
-    cat "$OUT"
-    if [ $TRACE != $ERR ]
-    then
-        echo
-        echo "TRACE-ERROR OUTPUT:"
-        cat "$TRACE"
+  else
+    echo " (empty)"
+  fi
+  if [[ "$_TYPE" == ":full" ]]; then
+    if grep -qE "[a-z0-9]" "$OUT" 2>/dev/null; then
+      echo
+      echo "Standard message:"
+      cat "$OUT"
     fi
+    if [[ "$TRACE" != "$ERR" ]] && grep -qE "[a-z0-9]" "$TRACE"; then
+      echo
+      echo "Tracing output:"
+      cat "$TRACE"
+    fi
+  fi
 fi
 
-rm -f "$OUT"
-rm -f "$ERR"
-rm -f "$TRACE"
+rm -f $OUT $ERR $TRACE
+
+: Nothing lasts forever
