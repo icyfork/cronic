@@ -1,11 +1,12 @@
 #!/bin/bash
-
+#
 # Homepage: http://habilis.net/cronic/
-
+# Icy fork: https://github.com/icyfork/cronic
+#
 # Cronic v2 - cron job report wrapper
 # Copyright 2007 Chuck Houpt. No rights reserved, whatsoever.
 # Public Domain CC0: http://creativecommons.org/publicdomain/zero/1.0/
-
+#
 # Updates by Ky-Anh: Add some options to control the output
 #
 #   cron [option] commands
@@ -15,6 +16,7 @@
 #   :silent   all kinds of messages are ignored
 #   :error    print error message if any
 #   :full     print any kind of message if any
+#
 
 set +eu
 
