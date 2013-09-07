@@ -51,10 +51,14 @@ else
 fi
 
 if [[ "$_TYPE" != ":full" ]]; then
-  # Ignore all PHP notice and warning
+  # Ignore some useless warnings
   echo "$@" | grep -q 'php '
   if [[ $? -eq 0 && "$RESULT" -eq 0 ]]; then
-    sed -i -e '/^PHP Warning: /d' -e '/^PHP Notice: /d' $ERR
+    sed -i \
+      -e '/^PHP Warning: /d' \
+      -e '/^PHP Notice: /d' \
+      -e '/iconv will be deprecated in the future, use String/d' \
+      $ERR
   fi
 fi
 
