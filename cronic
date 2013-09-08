@@ -14,7 +14,7 @@
 # [option] would be :silent, :full or :error
 #
 #   :silent   all kinds of messages are ignored
-#   :error    print error message if any
+#   :error    print error message if any (Default)
 #   :full     print any kind of message if any
 #
 
@@ -23,7 +23,7 @@ set +eu
 [[ $# -ge 1 ]] || exit 0
 
 _FLAG="$(date +%s)"
-_TYPE=":full"
+_TYPE=":error"
 
 OUT=/tmp/cronic.out.$$.$_FLAG
 ERR=/tmp/cronic.err.$$.$_FLAG
@@ -52,12 +52,11 @@ fi
 
 if [[ "$_TYPE" != ":full" ]]; then
   # Ignore some useless warnings
-  echo "$@" | grep -q 'php '
-  if [[ $? -eq 0 && "$RESULT" -eq 0 ]]; then
+  if [[ "$RESULT" -eq 0 ]]; then
     sed -i \
       -e '/^PHP Warning: /d' \
       -e '/^PHP Notice: /d' \
-      -e '/iconv will be deprecated in the future, use String/d' \
+      -e '/iconv will be deprecated in the future/d' \
       $ERR
   fi
 fi
